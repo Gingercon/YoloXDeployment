@@ -1,0 +1,49 @@
+name: Docker Image CI & Elastic Beanstalk CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+    
+    - name: AWS access
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: AKIARFAIAHOOP4PUZAR6
+        aws-secret-access-key: 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
+        aws-region: us-east-1
+    
+    - name: Login to Amazon ECR 
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+      with:
+        env: |
+          AWS_ACCESS_KEY_ID: AKIARFAIAHOOP4PUZAR6
+          AWS_SECRET_ACCESS_KEY: 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
+          AWS_DEFAULT_REGION: us-east-1
+          AWS_REGION: us-east-1
+    
+    - name: Delete old latest
+      run: aws ecr batch-delete-image --repository-name yolox --image-ids imageTag=latest
+
+    - name: Build the Docker image
+      run: |
+        docker build -t yolox:latest .
+        docker tag yolox:latest 079473687452.dkr.ecr.us-east-1.amazonaws.com/yolox:latest
+        docker push 079473687452.dkr.ecr.us-east-1.amazonaws.com/yolox:latest
+      
+    - name: Rebuild EB environment
+      run: aws elasticbeanstalk rebuild-environment --environment-name Yoloxpredictionenv-env
+        
+    
+    
